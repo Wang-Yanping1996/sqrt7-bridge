@@ -93,7 +93,7 @@ class Hand {
 		m_Entries[Color::Spade] = nullptr;
 
 		std::sort(cards.begin(), cards.end(), [](Card& x, Card& y) {
-			return x.Color == y.Color ? x.Number < y.Number : x.Color < y.Color;
+			return x.Color == y.Color ? x.Number > y.Number : x.Color > y.Color;
 		});
 
 		CardNode* prev = nullptr;
@@ -225,7 +225,7 @@ public:
 	int GetCards() const { return m_Nums; };
 	
 	CardNode* getHead() const {
-		for (int i = Color::Club; i <= Color::Spade; i++) {
+		for (int i = Color::Spade; i >= Color::Club; i--) {
 			Color color = (Color)(i);
 			auto it = m_Entries.find(color);
 			if (it != m_Entries.end() && it->second != nullptr)
@@ -254,7 +254,7 @@ public:
 
 		Color color = card->Info.Color;
 		auto entry = m_Entries[color];
-		if (entry != nullptr && card->Info.Number > entry->Info.Number) {
+		if (entry != nullptr && card->Info.Number < entry->Info.Number) {
 			return;
 		}
 

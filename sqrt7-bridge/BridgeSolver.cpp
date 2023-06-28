@@ -111,6 +111,99 @@ int BridgeSolver::SingleSolve(std::vector<Hand>& hands, int curPlayer, Color col
 	return (curPlayer % 2 == 0 ? res.NS : res.EW);
 }
 
+int BridgeSolver::SingleSolveWithCut(std::vector<Hand>& hands, int curPlayer, Color color, Result maxLose)
+{
+	assert(hands.size() == 4 && curPlayer >= 0 && curPlayer < 4);
+
+	auto& curHand = hands[curPlayer];
+
+	// first card in this round
+	if (m_RoundCards.size() == 0) {
+		uint64_t curState = getState(hands, curPlayer);
+		if (m_State.find(curState) != m_State.end()) {
+			return (curPlayer % 2 == 0 ? m_State[curState].NS : m_State[curState].EW);
+		}
+
+		for (auto card = curHand.TakeHeader(); card != nullptr; card = curHand.IterateTakeNext(card)) {
+			
+			// cur player can max win, is the minmium of oppo can max win
+			m_RoundCards.push_back(card->Info);
+			int curLose = SingleSolveWithCut(hands, (curPlayer + 1) % 4, card->Info.Color, maxLose);
+			m_RoundCards.pop_back();
+			int canWin = curHand.GetCards() + 1 - curLose;
+
+			UpdateRes(m_State[curState], curPlayer, canWin, curHand.GetCards() + 1);
+			if (isNS(curPlayer)) {
+				maxLose.NS = std::min(curHand.GetCards() + 1 - m_State[curState].NS, maxLose.NS);
+			}
+			else {
+				maxLose.EW = std::min(curHand.GetCards() + 1 - m_State[curState].EW, maxLose.EW);
+			}
+		}
+
+		assert(m_State.find(curState) != m_State.end());
+		return (curPlayer % 2 == 0 ? m_State[curState].NS : m_State[curState].EW);
+	}
+
+	// 2nd or 3rd player 
+	if (m_RoundCards.size() < 3) {
+		Result res = { 0, 0 };
+		for (auto card = curHand.TakeFirstValid(color); card != nullptr; card = curHand.IterateTakeNextValid(card, color)) {
+			m_RoundCards.push_back(card->Info);
+			int curLose = SingleSolveWithCut(hands, (curPlayer + 1) % 4, color, maxLose);
+			m_RoundCards.pop_back();
+			int canWin = curHand.GetCards() + 1 - curLose;
+
+			UpdateRes(res, curPlayer, canWin, curHand.GetCards() + 1);
+		}
+		return (curPlayer % 2 == 0 ? res.NS : res.EW);
+	}
+
+	// last play in this round 
+	Result res = { 0, 0 };
+	for (auto card = curHand.TakeFirstValid(color); card != nullptr; card = curHand.IterateTakeNextValid(card, color)) {
+		m_RoundCards.push_back(card->Info);
+		int winner = GetWinner(m_RoundCards, m_Trump);	// winner index in this round 
+		m_RoundCards.pop_back();
+		winner = (winner + curPlayer + 1) % 4;			// convert to sits 
+
+		if (isNS(winner)) {
+			if (maxLose.EW == 0) {
+				curHand.ImmediateInsert(card);
+				return curHand.GetCards();
+			}
+			else {
+				maxLose.EW -= 1;
+			}
+		}
+		if (isEW(winner)) {
+			if (maxLose.NS == 0) {
+				curHand.ImmediateInsert(card);
+				return curHand.GetCards();
+			}
+			else {
+				maxLose.NS -= 1;
+			}
+		}
+
+		int canWin = -1;
+		std::vector<Card> cards = m_RoundCards;
+		m_RoundCards.clear();
+		if ((winner % 2) == (curPlayer % 2)) {
+			canWin = 1 + SingleSolveWithCut(hands, winner, Color::NoTrump, maxLose);
+		}
+		else {
+			int lose = 1 + SingleSolveWithCut(hands, winner, Color::NoTrump, maxLose);
+			canWin = curHand.GetCards() + 1 - lose;
+		}
+		m_RoundCards = cards;
+
+		UpdateRes(res, curPlayer, canWin, curHand.GetCards() + 1);
+	}
+
+	return (curPlayer % 2 == 0 ? res.NS : res.EW);
+}
+
 void BridgeSolver::printState(uint64_t state, std::vector<Hand> const& hands)
 {
 	std::cout << "print state: " << std::hex << state << 

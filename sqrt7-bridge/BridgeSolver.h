@@ -79,8 +79,11 @@ public:
 
 	// given status, return the maxmium number curPlayer can win 
 	int SingleSolve(std::vector<Hand>& hands, int curPlayer, Color color);	
+	int SingleSolveWithCut(std::vector<Hand>& hands, int curPlayer, Color color, Result maxLose);
 
 	void printState(uint64_t state, std::vector<Hand> const& hands);
 	void printStates(std::vector<Hand> const& hands);
+	bool isNS(int curPlayer) { return (curPlayer % 2) == 0; };
+	bool isEW(int curPlayer) { return !isNS(curPlayer); };
 };
 
