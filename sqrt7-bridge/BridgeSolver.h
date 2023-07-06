@@ -1,6 +1,7 @@
 #pragma once
 #include "Card.h"
 #include <math.h>
+#include <map>
 // #include <unordered_map>
 // #include <ctype.h>
 struct Result {
@@ -10,6 +11,7 @@ class BridgeSolver {
 	std::unordered_map<uint64_t, Result> m_State;	// key is state, 13 for each hand, 4 for current action 
 	Color m_Trump;
 	std::vector<Card> m_RoundCards;
+	std::map<Color, std::map<Number, Card> > m_TotalHand;
 public:
 	BridgeSolver() = delete;
 	BridgeSolver(Color trump): m_Trump(trump) {
@@ -75,7 +77,18 @@ public:
 	};
 
 	// given status, return the number starter can win
-	int Solve(std::vector<Hand> &hands, int start, Color color);
+	int Solve(std::vector<Hand>& hands, int start, Color color) {
+		assert(hands.size() == 4 && start >= 0 && start < 4);
+
+		std::vector<Card> cards;
+		for (auto& hand : hands) {
+			for (auto card = hand.getHead(); card != nullptr; card = hand.getNext(card)) {
+				m_TotalHand[card->Info.Color][card->Info.Number] = card->Info;
+			}
+		}
+
+		return SingleSolveWithCut(hands, start, color, Result{ hands[0].GetCards(), hands[0].GetCards() });
+	};
 
 	// given status, return the maxmium number curPlayer can win 
 	int SingleSolve(std::vector<Hand>& hands, int curPlayer, Color color);	
@@ -85,5 +98,31 @@ public:
 	void printStates(std::vector<Hand> const& hands);
 	bool isNS(int curPlayer) { return (curPlayer % 2) == 0; };
 	bool isEW(int curPlayer) { return !isNS(curPlayer); };
+
+	bool isSame(Card const& c1, Card const& c2) {
+		if (c1.Color != c2.Color)
+			return false;
+		if (c1.Number > c2.Number)
+			return isSame(c2, c1);
+		// c1 < c2
+		auto it = m_TotalHand.find(c1.Color);
+		if (it == m_TotalHand.end())
+			return false;
+		auto iter = it->second.find(c1.Number);
+		if (iter == it->second.end())
+			return false;
+		return (*(++iter)).second.Number == c2.Number;
+	};
+	void removeFromTotal(std::vector<Card>& cards) {
+		for (auto card : cards) {
+			auto it = m_TotalHand.find(card.Color);
+			it->second.erase(card.Number);
+		}
+	}
+	void addIntoTotal(std::vector<Card>& cards) {
+		for (auto card : cards) {			
+			m_TotalHand[card.Color][card.Number] = card;
+		}
+	}
 };
 

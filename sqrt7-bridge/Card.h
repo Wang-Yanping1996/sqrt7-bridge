@@ -140,6 +140,14 @@ public:
 		{'K', Number::King},	{'k', Number::King},
 		{'A', Number::Ace},		{'a', Number::Ace},
 	};
+	Hand() {
+		m_Entries[Color::Club] = nullptr;
+		m_Entries[Color::Diamond] = nullptr;
+		m_Entries[Color::Heart] = nullptr;
+		m_Entries[Color::Spade] = nullptr;
+		m_Nums = 0;
+		m_State = 0;
+	};
 	Hand(const char* str) {
 		std::vector<Card> cards;
 		Color color = Color::NoTrump;
@@ -351,6 +359,10 @@ public:
 			return nullptr;
 		Remove(next);
 		return next;
+	};
+
+	bool isSameInHand(Card c1, Card c2) {
+
 	};
 
 };

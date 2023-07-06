@@ -124,8 +124,14 @@ int BridgeSolver::SingleSolveWithCut(std::vector<Hand>& hands, int curPlayer, Co
 			return (curPlayer % 2 == 0 ? m_State[curState].NS : m_State[curState].EW);
 		}
 
+		Card pre{ InvalidColor, InvalidNumber };
 		for (auto card = curHand.TakeHeader(); card != nullptr; card = curHand.IterateTakeNext(card)) {
-			
+			if (pre.Color != Color::InvalidColor && isSame(pre, card->Info)) {
+				pre = card->Info;
+				continue;
+			}
+			pre = card->Info;
+
 			// cur player can max win, is the minmium of oppo can max win
 			m_RoundCards.push_back(card->Info);
 			int curLose = SingleSolveWithCut(hands, (curPlayer + 1) % 4, card->Info.Color, maxLose);
@@ -147,8 +153,15 @@ int BridgeSolver::SingleSolveWithCut(std::vector<Hand>& hands, int curPlayer, Co
 
 	// 2nd or 3rd player 
 	if (m_RoundCards.size() < 3) {
+		Card pre{ InvalidColor, InvalidNumber };
 		Result res = { 0, 0 };
 		for (auto card = curHand.TakeFirstValid(color); card != nullptr; card = curHand.IterateTakeNextValid(card, color)) {
+			if (pre.Color != Color::InvalidColor && isSame(pre, card->Info)) {
+				pre = card->Info;
+				continue;
+			}
+			pre = card->Info;
+			
 			m_RoundCards.push_back(card->Info);
 			int curLose = SingleSolveWithCut(hands, (curPlayer + 1) % 4, color, maxLose);
 			m_RoundCards.pop_back();
@@ -160,8 +173,14 @@ int BridgeSolver::SingleSolveWithCut(std::vector<Hand>& hands, int curPlayer, Co
 	}
 
 	// last play in this round 
+	Card pre{ InvalidColor, InvalidNumber };
 	Result res = { 0, 0 };
 	for (auto card = curHand.TakeFirstValid(color); card != nullptr; card = curHand.IterateTakeNextValid(card, color)) {
+		if (pre.Color != Color::InvalidColor && isSame(pre, card->Info)) {
+			pre = card->Info;
+			continue;
+		}
+		
 		m_RoundCards.push_back(card->Info);
 		int winner = GetWinner(m_RoundCards, m_Trump);	// winner index in this round 
 		m_RoundCards.pop_back();
@@ -188,6 +207,8 @@ int BridgeSolver::SingleSolveWithCut(std::vector<Hand>& hands, int curPlayer, Co
 
 		int canWin = -1;
 		std::vector<Card> cards = m_RoundCards;
+		std::vector<Card> tmp = { card->Info };
+		removeFromTotal(cards), removeFromTotal(tmp);
 		m_RoundCards.clear();
 		if ((winner % 2) == (curPlayer % 2)) {
 			canWin = 1 + SingleSolveWithCut(hands, winner, Color::NoTrump, maxLose);
@@ -196,6 +217,7 @@ int BridgeSolver::SingleSolveWithCut(std::vector<Hand>& hands, int curPlayer, Co
 			int lose = 1 + SingleSolveWithCut(hands, winner, Color::NoTrump, maxLose);
 			canWin = curHand.GetCards() + 1 - lose;
 		}
+		addIntoTotal(cards), addIntoTotal(tmp);
 		m_RoundCards = cards;
 
 		UpdateRes(res, curPlayer, canWin, curHand.GetCards() + 1);

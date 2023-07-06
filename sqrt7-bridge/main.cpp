@@ -44,17 +44,19 @@ int main() {
 	Hand hand4("sKT96 cQT");
 	*/
 
+	
 	Hand hand1("sA753 hA87 dK652 c63");
 	Hand hand2("sJ2 hKQT62 d8743 cKJ");
 	Hand hand3("sQ8 hJ43 dAQT cA8754");
 	Hand hand4("sKT964 h95 dJ9 cQT92");
-
+	
 
 	std::vector<Hand> hands = { hand1, hand2, hand3, hand4 };
 
 	BridgeSolver solver(Color::NoTrump);
+	int res = solver.Solve(hands, 2, Color::NoTrump);
 //	int res = solver.SingleSolve(hands, 2, Color::NoTrump);
-	int res = solver.SingleSolveWithCut(hands, 2, Color::NoTrump, Result{ hand1.GetCards(), hand1.GetCards() });
+//	int res = solver.SingleSolveWithCut(hands, 2, Color::NoTrump, Result{ hand1.GetCards(), hand1.GetCards() });
 	std::cout << "res: " << res << std::endl;
 	solver.printStates(hands);
 	return 0;
